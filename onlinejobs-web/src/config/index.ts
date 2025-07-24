@@ -1,5 +1,5 @@
 // Environment configuration
-const isDevelopment = import.meta.env.MODE === 'development'
+const isDevelopment = import.meta.env.MODE === 'production'
 
 // API Configuration
 export const API_CONFIG = {
