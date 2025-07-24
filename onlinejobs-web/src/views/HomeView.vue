@@ -188,13 +188,14 @@
             @click="selectCategory(category)"
             class="category-card"
           >
+                    <div class="category-card-content">
             <div class="category-icon">{{ category.icon || '📁' }}</div>
             <h3 class="category-title">{{ category.name }}</h3>
-            <p class="category-description">{{ category.description || 'Kategori açıklaması' }}</p>
-            <div class="category-meta">
-              <span class="category-count">{{ category.jobCount || 0 }} iş</span>
-              <span class="category-arrow">→</span>
-            </div>
+            <div class="category-arrow">→</div>
+          </div>
+          
+          <p class="category-description">{{ category.description || 'Kategori açıklaması' }}</p>
+            
           </div>
         </div>
         
@@ -243,40 +244,58 @@
             :key="worker.id"
             class="worker-card"
           >
-            <div class="worker-avatar">
-              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-              </svg>
-            </div>
-            <div class="worker-info">
-              <h3 class="worker-name">{{ worker.firstName }} {{ worker.lastName }}</h3>
-              <p class="worker-phone">{{ worker.phone }}</p>
-              <p class="worker-email">{{ worker.email }}</p>
-              <div class="worker-location" v-if="worker.userInfos && worker.userInfos.length > 0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <div class="worker-header">
+              <div class="worker-avatar">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                 </svg>
-                <span>{{ worker.userInfos[0].address }}</span>
               </div>
-              <div class="worker-meta">
+              <div class="worker-info">
+                <h3 class="worker-name">{{ worker.firstName }} {{ worker.lastName }}</h3>
+                <div class="worker-phone">
+               
+                  <span>{{ worker.phone }}</span>
+                  <div class="worker-actions">
+              <button class="call-btn" @click="callWorker(worker)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                </svg>
+                Ara
+              </button>
+              <button class="message-btn" @click="contactWorker(worker)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                Mesajlaş
+              </button>
+            </div>
+                </div>
                 <div class="worker-status">
                   <span class="status-dot online"></span>
                   <span class="status-text">Çevrimiçi</span>
-                </div>
-                <div class="worker-distance" v-if="worker.distance">
-                  <span class="distance-text">{{ worker.distance.toFixed(1) }} km uzaklıkta</span>
+                  <span v-if="worker.distance" class="distance-text">• {{ worker.distance.toFixed(1) }} km</span>
                 </div>
               </div>
             </div>
-            <div class="worker-actions">
-              <button 
-                class="contact-btn"
-                @click="contactWorker(worker)"
-              >
-                İletişim
-              </button>
+            
+            <div class="worker-location-section" v-if="worker.userInfos && worker.userInfos.length > 0">
+              <div class="mini-map">
+                <svg class="w-full h-full" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Map background -->
+                  <rect width="200" height="100" fill="#f3f4f6"/>
+                  <!-- Location marker -->
+                  <circle cx="100" cy="50" r="3" fill="#ef4444"/>
+                  <!-- Location pulse -->
+                  <circle cx="100" cy="50" r="8" fill="#ef4444" opacity="0.3">
+                    <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0;0.3" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                </svg>
+              </div>
+           
             </div>
+            
+         
           </div>
         </div>
       </div>
@@ -666,6 +685,22 @@ const getCurrentPosition = (): Promise<GeolocationPosition> => {
 const contactWorker = (worker) => {
   selectedWorker.value = worker
   isChatOpen.value = true
+}
+
+const callWorker = (worker) => {
+  Swal.fire({
+    title: 'Arama Yapılıyor',
+    text: `${worker.firstName} ${worker.lastName} aranıyor...`,
+    icon: 'info',
+    confirmButtonText: 'Tamam',
+    showCancelButton: true,
+    cancelButtonText: 'İptal'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // TODO: Implement actual call functionality
+      window.open(`tel:${worker.phone}`, '_blank')
+    }
+  })
 }
 
 const closeChat = () => {
@@ -1188,15 +1223,22 @@ onMounted(() => {
 
 .category-icon {
   font-size: 2rem;
-  margin-bottom: 1rem;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
 }
 
 .category-title {
   font-size: 1.125rem;
   font-weight: 600;
   color: #1f2937;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
+  flex: 1;
+  text-align: center;
 }
 
 .category-description {
@@ -1221,13 +1263,26 @@ onMounted(() => {
 
 .category-arrow {
   color: #6b7280;
-  font-size: 1.125rem;
+  font-size: 1.5rem;
+  font-weight: bold;
   transition: transform 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
 }
 
 .category-card:hover .category-arrow {
   transform: translateX(4px);
   color: #10b981;
+}
+
+.category-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .loading-state {
@@ -1613,7 +1668,7 @@ onMounted(() => {
   border: 1px solid #e5e7eb;
   transition: all 0.3s;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 1rem;
 }
 
@@ -1634,6 +1689,12 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.worker-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
 .worker-info {
   flex: 1;
   min-width: 0;
@@ -1648,9 +1709,12 @@ onMounted(() => {
 }
 
 .worker-phone {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.875rem;
   color: #6b7280;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.5rem 0;
 }
 
 .worker-email {
@@ -1659,13 +1723,31 @@ onMounted(() => {
   margin: 0 0 0.5rem 0;
 }
 
-.worker-location {
+.worker-location-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mini-map {
+  width: 100%;
+  height: 80px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.location-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
   color: #6b7280;
-  margin: 0 0 0.5rem 0;
+}
+
+.location-text {
+  flex: 1;
+  line-height: 1.25;
 }
 
 .worker-meta {
@@ -1680,6 +1762,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .worker-distance {
@@ -1711,23 +1794,42 @@ onMounted(() => {
 }
 
 .worker-actions {
-  flex-shrink: 0;
+  display: flex;
+  gap: 0.75rem;
 }
 
-.contact-btn {
-  background: #10b981;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
+.call-btn, .message-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
+  border: none;
 }
 
-.contact-btn:hover {
+.call-btn {
+  background: #10b981;
+  color: white;
+}
+
+.call-btn:hover {
   background: #059669;
+  transform: translateY(-1px);
+}
+
+.message-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.message-btn:hover {
+  background: #2563eb;
   transform: translateY(-1px);
 }
 
