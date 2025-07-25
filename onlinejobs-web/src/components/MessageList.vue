@@ -171,17 +171,17 @@ const loadConversations = async () => {
         }
       }))
     } else if (conversationsData && Array.isArray(conversationsData)) {
-      // Handle direct array response
+      // Handle direct array response with new API format
       conversations.value = conversationsData.map((conv: any) => ({
-        id: conv.workerId || conv.id,
-        name: conv.workerName || `${conv.workerId?.slice(0, 8)}`,
-        lastMessage: conv.lastMessage || 'Mesajlaşmaya başlayın',
-        lastMessageTime: new Date(conv.lastMessageTime || Date.now()),
+        id: conv.partnerId || conv.id,
+        name: conv.partner ? `${conv.partner.firstName} ${conv.partner.lastName}` : `${conv.partnerId?.slice(0, 8)}`,
+        lastMessage: conv.lastMessage?.content || 'Mesajlaşmaya başlayın',
+        lastMessageTime: conv.lastMessage?.createdAt ? new Date(conv.lastMessage.createdAt) : new Date(),
         unreadCount: conv.unreadCount || 0,
         worker: {
-          id: conv.workerId || conv.id,
-          firstName: conv.workerFirstName || 'Kullanıcı',
-          lastName: conv.workerLastName || conv.workerId?.slice(0, 8) || ''
+          id: conv.partnerId || conv.id,
+          firstName: conv.partner?.firstName || 'Kullanıcı',
+          lastName: conv.partner?.lastName || conv.partnerId?.slice(0, 8) || ''
         }
       }))
       
