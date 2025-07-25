@@ -1,5 +1,5 @@
 // Environment configuration
-const isDevelopment = import.meta.env.MODE === 'production'
+const isDevelopment = import.meta.env.MODE === 'development'
 
 // API Configuration
 export const API_CONFIG = {
@@ -18,7 +18,9 @@ export const API_CONFIG = {
     CATEGORIES: '/categories',
     PROFILE: '/auth/profile',
     LOGOUT: '/auth/logout',
-    ONLINE_WORKERS: '/users/online-workers'
+    ONLINE_WORKERS: '/users/online-workers',
+    MESSAGES: '/messages',
+    CONVERSATION_HISTORY: '/messages/conversation'
   }
 }
 

@@ -56,7 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onUnmounted } from 'vue'
+import { socketService } from '@/services/socket'
 
 interface Worker {
   id: string
@@ -71,6 +72,7 @@ interface Message {
   text: string
   timestamp: Date
   sent: boolean
+  senderId?: string
 }
 
 interface Props {
@@ -88,10 +90,12 @@ const emit = defineEmits<Emits>()
 const messages = ref<Message[]>([])
 const newMessage = ref('')
 const messagesContainer = ref<HTMLElement>()
+const isTyping = ref(false)
 
-// Initialize with a welcome message
-watch(() => props.isOpen, (isOpen) => {
+// Initialize with a welcome message and WebSocket connection
+watch(() => props.isOpen, async (isOpen) => {
   if (isOpen && props.worker) {
+    // Initialize messages
     messages.value = [
       {
         id: '1',
@@ -100,16 +104,114 @@ watch(() => props.isOpen, (isOpen) => {
         sent: false
       }
     ]
+    
+    // Establish socket connection
+    console.log('Chat açılıyor, socket bağlantısı kuruluyor...')
+    
+    try {
+      // Ensure socket is connected
+      if (!socketService.isSocketConnected()) {
+        const socket = socketService.connect()
+        if (!socket) {
+          console.error('❌ Socket bağlantısı kurulamadı')
+          return
+        }
+        
+        // Wait for connection to establish
+        await new Promise((resolve) => {
+          const checkConnection = () => {
+            if (socketService.isSocketConnected()) {
+              resolve(true)
+            } else {
+              setTimeout(checkConnection, 100)
+            }
+          }
+          checkConnection()
+        })
+      }
+      
+      console.log('✅ Socket bağlantısı başarılı, konuşmaya katılım yapılıyor...')
+      
+      // Join conversation with the worker
+      socketService.joinConversation(props.worker.id)
+      
+      // Listen for sent message confirmation
+      socketService.onMessageSent((data) => {
+        console.log('✅ Mesaj başarıyla gönderildi:', data.id)
+        // Update the last sent message with server ID if needed
+      })
+      
+      // Listen for incoming messages
+      socketService.onNewMessage((data) => {
+        console.log('📨 Yeni mesaj alındı:', data)
+        const message: Message = {
+          id: data.id || Date.now().toString(),
+          text: data.content,
+          timestamp: new Date(data.timestamp || Date.now()),
+          sent: false,
+          senderId: data.senderId
+        }
+        messages.value.push(message)
+        scrollToBottom()
+      })
+      
+      // Listen for typing indicators
+      socketService.onUserTyping((data) => {
+        if (data.userId === props.worker?.id) {
+          isTyping.value = true
+        }
+      })
+      
+      socketService.onUserStoppedTyping((data) => {
+        if (data.userId === props.worker?.id) {
+          isTyping.value = false
+        }
+      })
+      
+    } catch (error) {
+      console.error('❌ Socket bağlantısı kurulurken hata:', error)
+    }
+    
     scrollToBottom()
+  } else if (!isOpen) {
+    // Disconnect when chat closes
+    socketService.disconnect()
   }
 })
 
 const sendMessage = async () => {
-  if (!newMessage.value.trim()) return
+  if (!newMessage.value.trim() || !props.worker) return
 
+  const messageText = newMessage.value.trim()
+  
+  console.log('=== Send Message Triggered ===')
+  console.log('Message text:', messageText)
+  console.log('Worker ID:', props.worker.id)
+  
+  // Ensure socket connection is ready
+  if (!socketService.isSocketConnected()) {
+    console.log('Socket not connected, attempting to connect...')
+    const socket = socketService.connect()
+    if (!socket) {
+      console.error('❌ Socket bağlantısı kurulamadı')
+      alert('Bağlantı hatası! Lütfen sayfayı yenileyin.')
+      return
+    }
+    
+    // Wait a bit for connection to establish
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    if (!socketService.isSocketConnected()) {
+      console.error('❌ Socket bağlantısı kurulamadı')
+      alert('Bağlantı hatası! Lütfen sayfayı yenileyin.')
+      return
+    }
+  }
+  
+  // Add message to local state immediately
   const message: Message = {
     id: Date.now().toString(),
-    text: newMessage.value,
+    text: messageText,
     timestamp: new Date(),
     sent: true
   }
@@ -120,17 +222,15 @@ const sendMessage = async () => {
   await nextTick()
   scrollToBottom()
 
-  // Simulate response after 1-2 seconds
-  setTimeout(() => {
-    const response: Message = {
-      id: (Date.now() + 1).toString(),
-      text: 'Mesajınız alındı. En kısa sürede size dönüş yapacağım.',
-      timestamp: new Date(),
-      sent: false
-    }
-    messages.value.push(response)
-    scrollToBottom()
-  }, 1000 + Math.random() * 1000)
+  // Send message via WebSocket
+  try {
+    console.log('📤 Sending message via socket...')
+    await socketService.sendMessage(messageText, props.worker.id, 'text')
+    console.log('✅ Mesaj socket üzerinden başarıyla gönderildi')
+  } catch (error) {
+    console.error('❌ Mesaj gönderilirken hata oluştu:', error)
+    alert('Mesaj gönderilemedi! Lütfen tekrar deneyin.')
+  }
 }
 
 const scrollToBottom = () => {
@@ -147,8 +247,16 @@ const formatTime = (date: Date) => {
 }
 
 const closeChat = () => {
+  socketService.disconnect()
   emit('close')
 }
+
+
+
+// Cleanup on component unmount
+onUnmounted(() => {
+  socketService.disconnect()
+})
 </script>
 
 <style scoped>

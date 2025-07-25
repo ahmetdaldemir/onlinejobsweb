@@ -79,12 +79,28 @@ export const workerService = {
       radius
     }
     
-    /*if (categoryId) {
+    if (categoryId) {
       params.categoryId = categoryId
-    }*/
+    }
     
     // Use the authenticated API instance for online workers
     const response = await api.get(API_CONFIG.ENDPOINTS.ONLINE_WORKERS, { params })
+    return response.data
+  }
+}
+
+export const messageService = {
+  getConversationHistory: async (userId: string) => {
+    const response = await api.get(`${API_CONFIG.ENDPOINTS.CONVERSATION_HISTORY}/${userId}`)
+    return response.data
+  },
+  
+  sendMessage: async (receiverId: string, content: string, type: string = 'text') => {
+    const response = await api.post(API_CONFIG.ENDPOINTS.MESSAGES, {
+      receiverId,
+      content,
+      type
+    })
     return response.data
   }
 }
