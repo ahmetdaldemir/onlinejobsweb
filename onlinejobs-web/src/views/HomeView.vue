@@ -20,6 +20,17 @@
         <div class="flex items-center gap-4">
           <!-- Show user info when authenticated -->
           <div v-if="isAuthenticated" class="flex items-center gap-3">
+            <!-- Message List Button -->
+            <button @click="openMessageList" class="message-btn">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+              </svg>
+              <span class="message-btn-text">Mesajlar</span>
+              <div v-if="unreadMessageCount > 0" class="message-badge">
+                {{ unreadMessageCount }}
+              </div>
+            </button>
+            
             <div class="dropdown-container">
               <button @click="toggleDropdown" class="user-profile-btn">
                 <div class="user-avatar">
@@ -444,6 +455,13 @@
       :worker="selectedWorker"
       @close="closeChat"
     />
+    
+    <!-- Message List -->
+    <MessageList 
+      :is-open="isMessageListOpen"
+      @close="closeMessageList"
+      @open-chat="openChatFromMessageList"
+    />
   </div>
 </template>
 
@@ -454,6 +472,7 @@ import { categoryService, workerService } from '@/services/api'
 import LoginModal from '@/components/LoginModal.vue'
 import RegisterModal from '@/components/RegisterModal.vue'
 import ChatWindow from '@/components/ChatWindow.vue'
+import MessageList from '@/components/MessageList.vue'
 import Swal from 'sweetalert2'
 
 const jobs = ref([
@@ -504,6 +523,10 @@ const workersLoading = ref(false)
 // Chat state
 const isChatOpen = ref(false)
 const selectedWorker = ref(null)
+
+// Message list state
+const isMessageListOpen = ref(false)
+const unreadMessageCount = ref(0)
 
 // Modal functions
 const openLoginModal = () => {
@@ -708,6 +731,21 @@ const closeChat = () => {
   selectedWorker.value = null
 }
 
+const openMessageList = () => {
+  isMessageListOpen.value = true
+  unreadMessageCount.value = 0 // Reset unread count when opening message list
+}
+
+const closeMessageList = () => {
+  isMessageListOpen.value = false
+}
+
+const openChatFromMessageList = (worker: any) => {
+  selectedWorker.value = worker
+  isChatOpen.value = true
+  isMessageListOpen.value = false
+}
+
 
 
 const goToRoot = () => {
@@ -754,6 +792,12 @@ onMounted(() => {
         confirmButtonText: 'Tamam'
       })
     }
+  })
+  
+  // Listen for unread count updates
+  window.addEventListener('update-unread-count', (event: CustomEvent) => {
+    const { senderId } = event.detail
+    unreadMessageCount.value++
   })
 })
 
@@ -1931,5 +1975,44 @@ onUnmounted(() => {
 
 .btn-secondary:hover {
   background: #f9fafb;
+}
+
+/* Message Button Styles */
+.message-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.message-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.message-btn-text {
+  font-size: 0.875rem;
+}
+
+.message-badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  background: #ef4444;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 10px;
+  min-width: 1.25rem;
+  text-align: center;
 }
 </style> 

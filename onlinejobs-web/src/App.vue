@@ -33,6 +33,11 @@ const handleNewMessageReceived = (event: CustomEvent) => {
   if (!currentChatWorker.value || currentChatWorker.value.id !== data.senderId) {
     showNewMessageNotification(data)
   }
+  
+  // Update unread count for message list
+  window.dispatchEvent(new CustomEvent('update-unread-count', {
+    detail: { senderId: data.senderId }
+  }))
 }
 
 onMounted(() => {
