@@ -77,9 +77,31 @@
             </button>
             <button class="action-btn danger" @click="handleLogout">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 013-3h4a3 3 0 013 3v1"></path>
               </svg>
               Çıkış Yap
+            </button>
+          </div>
+        </div>
+
+        <!-- Socket Status for Workers -->
+        <div v-if="authStore.isWorker" class="socket-status">
+          <h3 class="detail-title">Bağlantı Durumu</h3>
+          <div class="status-indicator">
+            <div class="status-item">
+              <span class="status-label">Socket Bağlantısı:</span>
+              <span class="status-value" :class="{ 'connected': socketConnected, 'disconnected': !socketConnected }">
+                {{ socketConnected ? 'Bağlı' : 'Bağlantı Yok' }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Worker Modu:</span>
+              <span class="status-value" :class="{ 'active': workerModeActive, 'inactive': !workerModeActive }">
+                {{ workerModeActive ? 'Aktif' : 'Pasif' }}
+              </span>
+            </div>
+            <button @click="testSocketConnection" class="test-btn">
+              Bağlantıyı Test Et
             </button>
           </div>
         </div>
@@ -89,15 +111,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import { socketService } from '@/services/socket'
 import Swal from 'sweetalert2'
 
 const authStore = useAuthStore()
 const router = useRouter()
 
 const user = computed(() => authStore.user)
+const socketConnected = ref(false)
+const workerModeActive = ref(false)
 
 const userTypeText = computed(() => {
   if (!user.value?.userType) return 'Belirtilmemiş'
@@ -112,6 +137,32 @@ const formatPhone = (phone: string) => {
     return `${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6, 8)} ${clean.slice(8)}`
   }
   return phone
+}
+
+const updateSocketStatus = () => {
+  socketConnected.value = socketService.isSocketConnected()
+  workerModeActive.value = socketService.isWorkerModeActive()
+}
+
+const testSocketConnection = () => {
+  if (socketService.testConnection()) {
+    Swal.fire({
+      icon: 'success',
+      title: 'Bağlantı Başarılı!',
+      text: 'Socket bağlantısı çalışıyor',
+      confirmButtonText: 'Tamam',
+      confirmButtonColor: '#10b981'
+    })
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'Bağlantı Hatası!',
+      text: 'Socket bağlantısı kurulamadı',
+      confirmButtonText: 'Tamam',
+      confirmButtonColor: '#ef4444'
+    })
+  }
+  updateSocketStatus()
 }
 
 const handleLogout = () => {
@@ -139,6 +190,12 @@ const handleLogout = () => {
     }
   })
 }
+
+onMounted(() => {
+  updateSocketStatus()
+  // Update status every 5 seconds
+  setInterval(updateSocketStatus, 5000)
+})
 </script>
 
 <style scoped>
@@ -353,12 +410,87 @@ const handleLogout = () => {
   color: white;
 }
 
-.action-btn.danger:hover {
-  background: #dc2626;
-  transform: translateY(-2px);
-}
+  .action-btn.danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+  }
 
-@media (max-width: 768px) {
+  /* Socket Status Styles */
+  .socket-status {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  .status-indicator {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .status-item:last-child {
+    border-bottom: none;
+  }
+
+  .status-label {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .status-value {
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+  }
+
+  .status-value.connected {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-value.disconnected {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .status-value.active {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .status-value.inactive {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .test-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 1rem;
+  }
+
+  .test-btn:hover {
+    background: #059669;
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
   .profile-content {
     padding: 1rem;
   }

@@ -8,6 +8,8 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
+  const userType = computed(() => user.value?.userType)
+  const isWorker = computed(() => userType.value === 'worker')
 
   const login = async (phone: string, userType: string, password: string) => {
     loading.value = true
@@ -64,6 +66,8 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     loading,
     isAuthenticated,
+    userType,
+    isWorker,
     login,
     register,
     logout,

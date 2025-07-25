@@ -5,6 +5,8 @@ import { API_CONFIG } from '@/config'
 class SocketService {
   private socket: Socket | null = null
   private isConnected = false
+  private isWorkerMode = false
+  private connectionInterval: NodeJS.Timeout | null = null
 
   connect() {
     const authStore = useAuthStore()
@@ -223,6 +225,11 @@ class SocketService {
       this.socket = null
       this.isConnected = false
     }
+    
+    // Stop worker mode if active
+    if (this.isWorkerMode) {
+      this.disableWorkerMode()
+    }
   }
 
   getSocket() {
@@ -231,6 +238,50 @@ class SocketService {
 
   isSocketConnected() {
     return this.isConnected
+  }
+
+  // Worker mode management
+  enableWorkerMode() {
+    console.log('🔧 Worker modu etkinleştiriliyor...')
+    this.isWorkerMode = true
+    this.startWorkerConnection()
+  }
+
+  disableWorkerMode() {
+    console.log('🔧 Worker modu devre dışı bırakılıyor...')
+    this.isWorkerMode = false
+    this.stopWorkerConnection()
+  }
+
+  private startWorkerConnection() {
+    if (this.connectionInterval) {
+      clearInterval(this.connectionInterval)
+    }
+
+    // Initial connection
+    this.connect()
+
+    // Keep connection alive for workers
+    this.connectionInterval = setInterval(() => {
+      if (this.isWorkerMode && (!this.socket || !this.isConnected)) {
+        console.log('🔄 Worker bağlantısı yeniden kuruluyor...')
+        this.connect()
+      }
+    }, 30000) // Check every 30 seconds
+
+    console.log('✅ Worker bağlantı yönetimi başlatıldı')
+  }
+
+  private stopWorkerConnection() {
+    if (this.connectionInterval) {
+      clearInterval(this.connectionInterval)
+      this.connectionInterval = null
+    }
+    console.log('🛑 Worker bağlantı yönetimi durduruldu')
+  }
+
+  isWorkerModeActive() {
+    return this.isWorkerMode
   }
 
   debugConnection() {
