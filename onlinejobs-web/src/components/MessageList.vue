@@ -14,7 +14,12 @@
 
     <!-- Message List -->
     <div class="message-list-content">
-      <div v-if="conversations.length === 0" class="empty-state">
+      <div v-if="loading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Konuşmalar yükleniyor...</p>
+      </div>
+      
+      <div v-else-if="conversations.length === 0" class="empty-state">
         <div class="empty-icon">💬</div>
         <p class="empty-text">Henüz mesajınız yok</p>
         <p class="empty-subtext">İşçilerle mesajlaşmaya başlayın</p>
@@ -55,6 +60,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { messageService } from '@/services/api'
 
 interface Conversation {
   id: string
@@ -79,6 +85,7 @@ const emit = defineEmits<Emits>()
 
 const conversations = ref<Conversation[]>([])
 const activeConversationId = ref<string | null>(null)
+const loading = ref(false)
 
 // Format time for display
 const formatTime = (date: Date) => {
@@ -143,9 +150,58 @@ const closeMessageList = () => {
   emit('close')
 }
 
+// Load conversations from API
+const loadConversations = async () => {
+  loading.value = true
+  try {
+    console.log('📚 Konuşma listesi yükleniyor...')
+    const conversationsData = await messageService.getConversationsList()
+    
+    if (conversationsData && conversationsData.conversations) {
+      conversations.value = conversationsData.conversations.map((conv: any) => ({
+        id: conv.workerId || conv.id,
+        name: conv.workerName || `${conv.workerId?.slice(0, 8)}`,
+        lastMessage: conv.lastMessage || 'Mesajlaşmaya başlayın',
+        lastMessageTime: new Date(conv.lastMessageTime || Date.now()),
+        unreadCount: conv.unreadCount || 0,
+        worker: {
+          id: conv.workerId || conv.id,
+          firstName: conv.workerFirstName || 'Kullanıcı',
+          lastName: conv.workerLastName || conv.workerId?.slice(0, 8) || ''
+        }
+      }))
+    } else if (conversationsData && Array.isArray(conversationsData)) {
+      // Handle direct array response
+      conversations.value = conversationsData.map((conv: any) => ({
+        id: conv.workerId || conv.id,
+        name: conv.workerName || `${conv.workerId?.slice(0, 8)}`,
+        lastMessage: conv.lastMessage || 'Mesajlaşmaya başlayın',
+        lastMessageTime: new Date(conv.lastMessageTime || Date.now()),
+        unreadCount: conv.unreadCount || 0,
+        worker: {
+          id: conv.workerId || conv.id,
+          firstName: conv.workerFirstName || 'Kullanıcı',
+          lastName: conv.workerLastName || conv.workerId?.slice(0, 8) || ''
+        }
+      }))
+      
+      console.log('✅ Konuşma listesi yüklendi:', conversations.value.length, 'konuşma')
+    } else {
+      console.log('ℹ️ Konuşma listesi bulunamadı')
+    }
+  } catch (error) {
+    console.error('❌ Konuşma listesi yüklenirken hata:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 // Listen for new messages
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
+    // Load conversations when message list opens
+    loadConversations()
+    
     // Listen for new message events
     const handleNewMessage = (event: CustomEvent) => {
       const messageData = event.detail
@@ -171,11 +227,13 @@ watch(() => props.isOpen, (isOpen) => {
     
     window.addEventListener('new-message-received', handleNewMessage as EventListener)
     window.addEventListener('message-sent', handleMessageSent as EventListener)
+    window.addEventListener('refresh-conversations', loadConversations as EventListener)
     
     // Cleanup on close
     return () => {
       window.removeEventListener('new-message-received', handleNewMessage as EventListener)
       window.removeEventListener('message-sent', handleMessageSent as EventListener)
+      window.removeEventListener('refresh-conversations', loadConversations as EventListener)
     }
   }
 })
@@ -290,6 +348,38 @@ defineExpose({
 }
 
 .empty-subtext {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #10b981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
   font-size: 0.875rem;
   color: #6b7280;
   margin: 0;

@@ -741,6 +741,11 @@ const closeChat = () => {
 const openMessageList = () => {
   isMessageListOpen.value = true
   unreadMessageCount.value = 0 // Reset unread count when opening message list
+  
+  // Trigger conversation list refresh
+  setTimeout(() => {
+    window.dispatchEvent(new CustomEvent('refresh-conversations'))
+  }, 100)
 }
 
 const closeMessageList = () => {

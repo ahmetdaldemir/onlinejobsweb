@@ -38,6 +38,9 @@ const handleNewMessageReceived = (event: CustomEvent) => {
   window.dispatchEvent(new CustomEvent('update-unread-count', {
     detail: { senderId: data.senderId }
   }))
+  
+  // Notify message list to refresh conversations
+  window.dispatchEvent(new CustomEvent('refresh-conversations'))
 }
 
 onMounted(() => {
