@@ -284,6 +284,28 @@ class SocketService {
     return this.isWorkerMode
   }
 
+  // Global message listener for all authenticated users
+  setupGlobalMessageListener(callback: (data: any) => void) {
+    if (!this.socket) {
+      console.error('Socket bağlantısı yok, global message listener kurulamadı')
+      return
+    }
+
+    this.socket.on('new_message', (data) => {
+      console.log('📨 Yeni mesaj geldi:', data)
+      callback(data)
+    })
+
+    console.log('✅ Global message listener kuruldu')
+  }
+
+  removeGlobalMessageListener() {
+    if (this.socket) {
+      this.socket.off('new_message')
+      console.log('🛑 Global message listener kaldırıldı')
+    }
+  }
+
   debugConnection() {
     const authStore = useAuthStore()
     console.log('=== Socket Debug Info ===')

@@ -736,6 +736,30 @@ const goToCategory = (category, index) => {
 // Load categories on mount
 onMounted(() => {
   loadCategories()
+  
+  // Listen for open-chat events from notifications
+  window.addEventListener('open-chat', (event: CustomEvent) => {
+    const { workerId } = event.detail
+    
+    // Find worker by ID and open chat
+    const worker = onlineWorkers.value.find(w => w.id === workerId)
+    if (worker) {
+      contactWorker(worker)
+    } else {
+      // If worker not found in current list, show error
+      Swal.fire({
+        title: 'Hata',
+        text: 'İşçi bulunamadı. Lütfen sayfayı yenileyin.',
+        icon: 'error',
+        confirmButtonText: 'Tamam'
+      })
+    }
+  })
+})
+
+onUnmounted(() => {
+  // Remove event listener
+  window.removeEventListener('open-chat', () => {})
 })
 </script>
 

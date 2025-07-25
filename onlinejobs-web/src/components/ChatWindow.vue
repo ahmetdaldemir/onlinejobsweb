@@ -95,6 +95,11 @@ const isTyping = ref(false)
 // Initialize with a welcome message and WebSocket connection
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen && props.worker) {
+    // Notify App.vue about current chat worker
+    window.dispatchEvent(new CustomEvent('chat-opened', {
+      detail: { worker: props.worker }
+    }))
+    
     // Initialize messages
     messages.value = [
       {
@@ -174,6 +179,9 @@ watch(() => props.isOpen, async (isOpen) => {
     
     scrollToBottom()
   } else if (!isOpen) {
+    // Notify App.vue that chat is closed
+    window.dispatchEvent(new CustomEvent('chat-closed'))
+    
     // Disconnect when chat closes
     socketService.disconnect()
   }
