@@ -59,6 +59,7 @@
 import { ref, nextTick, watch, onUnmounted } from 'vue'
 import { socketService } from '@/services/socket'
 import { messageService } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
 interface Worker {
   id: string
@@ -92,6 +93,7 @@ const messages = ref<Message[]>([])
 const newMessage = ref('')
 const messagesContainer = ref<HTMLElement>()
 const isTyping = ref(false)
+const authStore = useAuthStore()
 
 // Initialize with conversation history and WebSocket connection
 watch(() => props.isOpen, async (isOpen) => {
@@ -104,17 +106,36 @@ watch(() => props.isOpen, async (isOpen) => {
     // Load conversation history
     try {
       console.log('📚 Konuşma geçmişi yükleniyor...')
+      console.log('Worker ID:', props.worker.id)
       const conversationData = await messageService.getConversationMessages(props.worker.id)
+      console.log('API Response:', conversationData)
       
-      if (conversationData && conversationData.messages) {
-        // Convert API messages to local format
-        messages.value = conversationData.messages.map((msg: any) => ({
-          id: msg.id,
-          text: msg.content,
-          timestamp: new Date(msg.createdAt),
-          sent: msg.senderId === props.worker?.id ? false : true,
-          senderId: msg.senderId
-        }))
+      if (conversationData && Array.isArray(conversationData)) {
+        // Convert API messages to local format and sort by timestamp (oldest first)
+        const currentUserId = authStore.user?.id
+        messages.value = conversationData
+          .map((msg: any) => ({
+            id: msg.id,
+            text: msg.content,
+            timestamp: new Date(msg.createdAt),
+            sent: msg.senderId === currentUserId, // If senderId is current user, then it's sent by current user
+            senderId: msg.senderId
+          }))
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort by timestamp ascending
+        
+        console.log('✅ Konuşma geçmişi yüklendi:', messages.value.length, 'mesaj')
+      } else if (conversationData && conversationData.messages) {
+        // Fallback for nested messages format
+        const currentUserId = authStore.user?.id
+        messages.value = conversationData.messages
+          .map((msg: any) => ({
+            id: msg.id,
+            text: msg.content,
+            timestamp: new Date(msg.createdAt),
+            sent: msg.senderId === currentUserId, // If senderId is current user, then it's sent by current user
+            senderId: msg.senderId
+          }))
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort by timestamp ascending
         
         console.log('✅ Konuşma geçmişi yüklendi:', messages.value.length, 'mesaj')
       } else {
