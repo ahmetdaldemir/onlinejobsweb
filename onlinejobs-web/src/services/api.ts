@@ -95,6 +95,11 @@ export const messageService = {
     return response.data
   },
   
+  getConversationMessages: async (conversationId: string) => {
+    const response = await api.get(`/messages/conversation/${conversationId}`)
+    return response.data
+  },
+  
   sendMessage: async (receiverId: string, content: string, type: string = 'text') => {
     const response = await api.post(API_CONFIG.ENDPOINTS.MESSAGES, {
       receiverId,

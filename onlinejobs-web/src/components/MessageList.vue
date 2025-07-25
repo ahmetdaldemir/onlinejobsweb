@@ -113,14 +113,18 @@ const addMessageToConversation = (messageData: any) => {
     conversations.value.splice(existingIndex, 1)
     conversations.value.unshift(conversation)
   } else {
-    // Create new conversation
+    // Create new conversation with better worker info
     const newConversation: Conversation = {
       id: senderId,
       name: `Kullanıcı ${senderId.slice(0, 8)}`, // Temporary name
       lastMessage: content,
       lastMessageTime: new Date(createdAt),
       unreadCount: 1,
-      worker: { id: senderId } // Temporary worker object
+      worker: { 
+        id: senderId,
+        firstName: 'Kullanıcı',
+        lastName: senderId.slice(0, 8)
+      } // Temporary worker object
     }
     
     conversations.value.unshift(newConversation)
@@ -148,11 +152,30 @@ watch(() => props.isOpen, (isOpen) => {
       addMessageToConversation(messageData)
     }
     
+    // Listen for sent message events
+    const handleMessageSent = (event: CustomEvent) => {
+      const messageData = event.detail
+      // Update conversation with sent message
+      const existingIndex = conversations.value.findIndex(c => c.id === messageData.receiverId)
+      if (existingIndex >= 0) {
+        const conversation = conversations.value[existingIndex]
+        conversation.lastMessage = messageData.content
+        conversation.lastMessageTime = messageData.timestamp
+        conversation.unreadCount = 0 // Mark as read since we sent it
+        
+        // Move to top
+        conversations.value.splice(existingIndex, 1)
+        conversations.value.unshift(conversation)
+      }
+    }
+    
     window.addEventListener('new-message-received', handleNewMessage as EventListener)
+    window.addEventListener('message-sent', handleMessageSent as EventListener)
     
     // Cleanup on close
     return () => {
       window.removeEventListener('new-message-received', handleNewMessage as EventListener)
+      window.removeEventListener('message-sent', handleMessageSent as EventListener)
     }
   }
 })

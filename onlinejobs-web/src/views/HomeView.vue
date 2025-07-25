@@ -458,6 +458,7 @@
     
     <!-- Message List -->
     <MessageList 
+      ref="messageListRef"
       :is-open="isMessageListOpen"
       @close="closeMessageList"
       @open-chat="openChatFromMessageList"
@@ -527,6 +528,7 @@ const selectedWorker = ref(null)
 // Message list state
 const isMessageListOpen = ref(false)
 const unreadMessageCount = ref(0)
+const messageListRef = ref()
 
 // Modal functions
 const openLoginModal = () => {
@@ -708,6 +710,11 @@ const getCurrentPosition = (): Promise<GeolocationPosition> => {
 const contactWorker = (worker) => {
   selectedWorker.value = worker
   isChatOpen.value = true
+  
+  // Add conversation to message list
+  if (messageListRef.value) {
+    messageListRef.value.addConversation(worker, 'Mesajlaşmaya başlayın')
+  }
 }
 
 const callWorker = (worker) => {
@@ -741,7 +748,20 @@ const closeMessageList = () => {
 }
 
 const openChatFromMessageList = (worker: any) => {
-  selectedWorker.value = worker
+  // If worker has full info, use it directly
+  if (worker.firstName && worker.lastName) {
+    selectedWorker.value = worker
+  } else {
+    // Try to find worker in online workers list
+    const foundWorker = onlineWorkers.value.find(w => w.id === worker.id)
+    if (foundWorker) {
+      selectedWorker.value = foundWorker
+    } else {
+      // Use the worker as is (from message list)
+      selectedWorker.value = worker
+    }
+  }
+  
   isChatOpen.value = true
   isMessageListOpen.value = false
 }

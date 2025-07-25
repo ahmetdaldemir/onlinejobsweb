@@ -58,6 +58,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch, onUnmounted } from 'vue'
 import { socketService } from '@/services/socket'
+import { messageService } from '@/services/api'
 
 interface Worker {
   id: string
@@ -92,7 +93,7 @@ const newMessage = ref('')
 const messagesContainer = ref<HTMLElement>()
 const isTyping = ref(false)
 
-// Initialize with a welcome message and WebSocket connection
+// Initialize with conversation history and WebSocket connection
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen && props.worker) {
     // Notify App.vue about current chat worker
@@ -100,15 +101,46 @@ watch(() => props.isOpen, async (isOpen) => {
       detail: { worker: props.worker }
     }))
     
-    // Initialize messages
-    messages.value = [
-      {
-        id: '1',
-        text: `Merhaba! ${props.worker.firstName} ile mesajlaşmaya başlayabilirsiniz.`,
-        timestamp: new Date(),
-        sent: false
+    // Load conversation history
+    try {
+      console.log('📚 Konuşma geçmişi yükleniyor...')
+      const conversationData = await messageService.getConversationMessages(props.worker.id)
+      
+      if (conversationData && conversationData.messages) {
+        // Convert API messages to local format
+        messages.value = conversationData.messages.map((msg: any) => ({
+          id: msg.id,
+          text: msg.content,
+          timestamp: new Date(msg.createdAt),
+          sent: msg.senderId === props.worker?.id ? false : true,
+          senderId: msg.senderId
+        }))
+        
+        console.log('✅ Konuşma geçmişi yüklendi:', messages.value.length, 'mesaj')
+      } else {
+        // Initialize with welcome message if no history
+        messages.value = [
+          {
+            id: '1',
+            text: `Merhaba! ${props.worker.firstName} ile mesajlaşmaya başlayabilirsiniz.`,
+            timestamp: new Date(),
+            sent: false
+          }
+        ]
+        console.log('ℹ️ Konuşma geçmişi bulunamadı, hoş geldin mesajı gösteriliyor')
       }
-    ]
+    } catch (error) {
+      console.error('❌ Konuşma geçmişi yüklenirken hata:', error)
+      // Initialize with welcome message on error
+      messages.value = [
+        {
+          id: '1',
+          text: `Merhaba! ${props.worker.firstName} ile mesajlaşmaya başlayabilirsiniz.`,
+          timestamp: new Date(),
+          sent: false
+        }
+      ]
+    }
     
     // Establish socket connection
     console.log('Chat açılıyor, socket bağlantısı kuruluyor...')
@@ -235,6 +267,15 @@ const sendMessage = async () => {
     console.log('📤 Sending message via socket...')
     await socketService.sendMessage(messageText, props.worker.id, 'text')
     console.log('✅ Mesaj socket üzerinden başarıyla gönderildi')
+    
+    // Update message list with new message
+    window.dispatchEvent(new CustomEvent('message-sent', {
+      detail: {
+        receiverId: props.worker.id,
+        content: messageText,
+        timestamp: new Date()
+      }
+    }))
   } catch (error) {
     console.error('❌ Mesaj gönderilirken hata oluştu:', error)
     alert('Mesaj gönderilemedi! Lütfen tekrar deneyin.')
