@@ -63,6 +63,24 @@ class SocketService {
     this.socket.on('connect', () => {
       console.log('✅ Bağlandı! Socket ID:', this.socket?.id)
       this.isConnected = true
+      
+      // If in worker mode, setup global message listener automatically
+      if (this.isWorkerMode) {
+        console.log('🔧 Worker modu - Global message listener otomatik kuruluyor...')
+        // Small delay to ensure connection is fully established
+        setTimeout(() => {
+          if (this.socket && this.isConnected) {
+            this.socket.on('new_message', (data) => {
+              console.log('📨 Worker modu - Yeni mesaj geldi:', data)
+              // Emit event for App.vue to handle
+              window.dispatchEvent(new CustomEvent('new-message-received', {
+                detail: data
+              }))
+            })
+            console.log('✅ Worker modu - Global message listener kuruldu')
+          }
+        }, 500)
+      }
     })
 
     this.socket.on('disconnect', (reason) => {
@@ -286,8 +304,21 @@ class SocketService {
 
   // Global message listener for all authenticated users
   setupGlobalMessageListener(callback: (data: any) => void) {
-    if (!this.socket) {
-      console.error('Socket bağlantısı yok, global message listener kurulamadı')
+    if (!this.socket || !this.isConnected) {
+      console.log('⏳ Socket bağlantısı bekleniyor...')
+      // Wait for connection and retry
+      const waitForConnection = () => {
+        if (this.socket && this.isConnected) {
+          this.socket.on('new_message', (data) => {
+            console.log('📨 Yeni mesaj geldi:', data)
+            callback(data)
+          })
+          console.log('✅ Global message listener kuruldu')
+        } else {
+          setTimeout(waitForConnection, 100)
+        }
+      }
+      waitForConnection()
       return
     }
 

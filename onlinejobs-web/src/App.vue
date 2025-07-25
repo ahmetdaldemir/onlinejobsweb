@@ -24,6 +24,17 @@ const handleChatClosed = () => {
   console.log('💬 Chat kapatıldı')
 }
 
+// Listen for new message events from worker mode
+const handleNewMessageReceived = (event: CustomEvent) => {
+  const data = event.detail
+  console.log('📨 Worker modu - Yeni mesaj alındı:', data)
+  
+  // Check if user is not in a chat or chatting with different user
+  if (!currentChatWorker.value || currentChatWorker.value.id !== data.senderId) {
+    showNewMessageNotification(data)
+  }
+}
+
 onMounted(() => {
   authStore.initializeAuth()
 })
@@ -32,14 +43,24 @@ onMounted(() => {
 const setupGlobalMessageListener = () => {
   if (!authStore.isAuthenticated) return
 
-  socketService.setupGlobalMessageListener((data) => {
-    console.log('📨 Global message listener - Yeni mesaj:', data)
-    
-    // Check if user is not in a chat or chatting with different user
-    if (!currentChatWorker.value || currentChatWorker.value.id !== data.senderId) {
-      showNewMessageNotification(data)
+  // Wait for socket to be connected before setting up listener
+  const waitForSocket = () => {
+    if (socketService.isSocketConnected()) {
+      socketService.setupGlobalMessageListener((data) => {
+        console.log('📨 Global message listener - Yeni mesaj:', data)
+        
+        // Check if user is not in a chat or chatting with different user
+        if (!currentChatWorker.value || currentChatWorker.value.id !== data.senderId) {
+          showNewMessageNotification(data)
+        }
+      })
+    } else {
+      // Wait a bit and try again
+      setTimeout(waitForSocket, 500)
     }
-  })
+  }
+  
+  waitForSocket()
 }
 
 // Show notification for new message
@@ -89,15 +110,22 @@ const showNewMessageNotification = (messageData: any) => {
 // Watch for authentication changes and manage socket connection for workers
 watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   if (isAuthenticated) {
-    console.log('🔐 Kullanıcı giriş yaptı, global message listener kuruluyor...')
+    console.log('🔐 Kullanıcı giriş yaptı...')
     
-    // Setup global message listener for all authenticated users
-    setupGlobalMessageListener()
-    
-    // For workers, also enable worker mode
+    // For workers, enable worker mode first
     if (authStore.isWorker) {
       console.log('👷 Worker kullanıcısı tespit edildi, socket bağlantısı başlatılıyor...')
       socketService.enableWorkerMode()
+      
+      // Wait for worker mode to establish connection, then setup global listener
+      setTimeout(() => {
+        console.log('🔐 Global message listener kuruluyor...')
+        setupGlobalMessageListener()
+      }, 1000)
+    } else {
+      // For non-workers, setup global listener immediately
+      console.log('🔐 Global message listener kuruluyor...')
+      setupGlobalMessageListener()
     }
   } else {
     console.log('🚪 Kullanıcı çıkış yaptı, socket bağlantısı kapatılıyor...')
@@ -127,12 +155,14 @@ onMounted(() => {
   // Add chat event listeners
   window.addEventListener('chat-opened', handleChatOpened as EventListener)
   window.addEventListener('chat-closed', handleChatClosed as EventListener)
+  window.addEventListener('new-message-received', handleNewMessageReceived as EventListener)
 })
 
 onUnmounted(() => {
   // Remove chat event listeners
   window.removeEventListener('chat-opened', handleChatOpened as EventListener)
   window.removeEventListener('chat-closed', handleChatClosed as EventListener)
+  window.removeEventListener('new-message-received', handleNewMessageReceived as EventListener)
 })
 </script>
 
