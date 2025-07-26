@@ -97,6 +97,7 @@ const authStore = useAuthStore()
 
 // Initialize with conversation history and WebSocket connection
 watch(() => props.isOpen, async (isOpen) => {
+  console.log('🔄 ChatWindow watch triggered:', { isOpen, worker: props.worker })
   if (isOpen && props.worker) {
     // Notify App.vue about current chat worker
     window.dispatchEvent(new CustomEvent('chat-opened', {
@@ -107,23 +108,39 @@ watch(() => props.isOpen, async (isOpen) => {
     try {
       console.log('📚 Konuşma geçmişi yükleniyor...')
       console.log('Worker ID:', props.worker.id)
+      console.log('Worker Object:', props.worker)
       const conversationData = await messageService.getConversationMessages(props.worker.id)
       console.log('API Response:', conversationData)
+      console.log('Response Type:', typeof conversationData)
+      console.log('Is Array:', Array.isArray(conversationData))
       
       if (conversationData && Array.isArray(conversationData)) {
+        console.log('📨 API Response is Array, processing messages...')
         // Convert API messages to local format and sort by timestamp (oldest first)
         const currentUserId = authStore.user?.id
+        console.log('👤 Current User ID:', currentUserId)
+        
         messages.value = conversationData
-          .map((msg: any) => ({
-            id: msg.id,
-            text: msg.content,
-            timestamp: new Date(msg.createdAt),
-            sent: msg.senderId === currentUserId, // If senderId is current user, then it's sent by current user
-            senderId: msg.senderId
-          }))
+          .map((msg: any) => {
+            const mappedMessage = {
+              id: msg.id,
+              text: msg.content,
+              timestamp: new Date(msg.createdAt),
+              sent: msg.senderId === currentUserId, // If senderId is current user, then it's sent by current user
+              senderId: msg.senderId
+            }
+            console.log('📝 Mapped message:', mappedMessage)
+            return mappedMessage
+          })
           .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort by timestamp ascending
         
         console.log('✅ Konuşma geçmişi yüklendi:', messages.value.length, 'mesaj')
+        console.log('📋 Final messages:', messages.value)
+        
+        // Scroll to bottom after messages load
+        nextTick(() => {
+          scrollToBottom()
+        })
       } else if (conversationData && conversationData.messages) {
         // Fallback for nested messages format
         const currentUserId = authStore.user?.id
@@ -138,6 +155,11 @@ watch(() => props.isOpen, async (isOpen) => {
           .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort by timestamp ascending
         
         console.log('✅ Konuşma geçmişi yüklendi:', messages.value.length, 'mesaj')
+        
+        // Scroll to bottom after messages load
+        nextTick(() => {
+          scrollToBottom()
+        })
       } else {
         // Initialize with welcome message if no history
         messages.value = [
@@ -152,6 +174,11 @@ watch(() => props.isOpen, async (isOpen) => {
       }
     } catch (error) {
       console.error('❌ Konuşma geçmişi yüklenirken hata:', error)
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      })
       // Initialize with welcome message on error
       messages.value = [
         {
@@ -317,7 +344,15 @@ const formatTime = (date: Date) => {
 }
 
 const closeChat = () => {
-  socketService.disconnect()
+  // Notify App.vue about chat closed
+  window.dispatchEvent(new CustomEvent('chat-closed', {
+    detail: { worker: props.worker }
+  }))
+  
+  // Clear messages
+  messages.value = []
+  
+  // Emit close event
   emit('close')
 }
 
@@ -341,7 +376,7 @@ onUnmounted(() => {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  z-index: 1000;
+  z-index: 9999; /* Higher than message list */
   border: 1px solid #e5e7eb;
 }
 
@@ -396,15 +431,20 @@ onUnmounted(() => {
   border: none;
   color: #6b7280;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.5rem;
   border-radius: 0.25rem;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
   background: #f3f4f6;
   color: #374151;
 }
+
+
 
 .chat-messages {
   flex: 1;
@@ -413,6 +453,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  justify-content: flex-end; /* Messages start from bottom */
 }
 
 .message {

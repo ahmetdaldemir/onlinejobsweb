@@ -283,7 +283,7 @@ defineExpose({
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  z-index: 1000;
+  z-index: 100; /* Lower than chat windows */
 }
 
 .message-list-header {

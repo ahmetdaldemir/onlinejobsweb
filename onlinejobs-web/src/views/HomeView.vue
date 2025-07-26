@@ -449,12 +449,16 @@
       @switch-to-login="switchToLogin"
     />
     
-    <!-- Chat Window -->
-    <ChatWindow 
-      :is-open="isChatOpen"
-      :worker="selectedWorker"
-      @close="closeChat"
-    />
+    <!-- Multiple Chat Windows -->
+    <div class="chat-windows-container">
+      <ChatWindow 
+        v-for="chat in openChats"
+        :key="chat.id"
+        :is-open="true"
+        :worker="chat.worker"
+        @close="closeChat(chat.id)"
+      />
+    </div>
     
     <!-- Message List -->
     <MessageList 
@@ -521,8 +525,8 @@ const categoryPath = ref([])
 const onlineWorkers = ref([])
 const workersLoading = ref(false)
 
-// Chat state
-const isChatOpen = ref(false)
+// Chat state - Multiple chat windows support
+const openChats = ref<Array<{worker: any, id: string}>>([])
 const selectedWorker = ref(null)
 
 // Message list state
@@ -708,8 +712,16 @@ const getCurrentPosition = (): Promise<GeolocationPosition> => {
 }
 
 const contactWorker = (worker) => {
-  selectedWorker.value = worker
-  isChatOpen.value = true
+  // Check if chat already exists
+  const existingChat = openChats.value.find(chat => chat.worker.id === worker.id)
+  if (!existingChat) {
+    // Add new chat
+    const chatId = `chat-${worker.id}-${Date.now()}`
+    openChats.value.push({
+      id: chatId,
+      worker: worker
+    })
+  }
   
   // Add conversation to message list
   if (messageListRef.value) {
@@ -733,9 +745,12 @@ const callWorker = (worker) => {
   })
 }
 
-const closeChat = () => {
-  isChatOpen.value = false
-  selectedWorker.value = null
+const closeChat = (chatId: string) => {
+  // Remove chat from open chats
+  const index = openChats.value.findIndex(chat => chat.id === chatId)
+  if (index !== -1) {
+    openChats.value.splice(index, 1)
+  }
 }
 
 const openMessageList = () => {
@@ -753,21 +768,33 @@ const closeMessageList = () => {
 }
 
 const openChatFromMessageList = (worker: any) => {
+  let finalWorker = worker
+  
   // If worker has full info, use it directly
   if (worker.firstName && worker.lastName) {
-    selectedWorker.value = worker
+    finalWorker = worker
   } else {
     // Try to find worker in online workers list
     const foundWorker = onlineWorkers.value.find(w => w.id === worker.id)
     if (foundWorker) {
-      selectedWorker.value = foundWorker
+      finalWorker = foundWorker
     } else {
       // Use the worker as is (from message list)
-      selectedWorker.value = worker
+      finalWorker = worker
     }
   }
   
-  isChatOpen.value = true
+  // Check if chat already exists
+  const existingChat = openChats.value.find(chat => chat.worker.id === finalWorker.id)
+  if (!existingChat) {
+    // Add new chat
+    const chatId = `chat-${finalWorker.id}-${Date.now()}`
+    openChats.value.push({
+      id: chatId,
+      worker: finalWorker
+    })
+  }
+  
   isMessageListOpen.value = false
 }
 
@@ -2039,5 +2066,16 @@ onUnmounted(() => {
   border-radius: 10px;
   min-width: 1.25rem;
   text-align: center;
+}
+
+/* Chat Windows Container */
+.chat-windows-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  z-index: 9999; /* Higher than message list */
 }
 </style> 
