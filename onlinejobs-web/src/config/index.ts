@@ -16,6 +16,7 @@ export const API_CONFIG = {
     REGISTER: '/auth/register',
     CHECK_PHONE: '/check-phone',
     CATEGORIES: '/categories',
+    CATEGORIES_BY_PARENT: '/categories/parent',
     PROFILE: '/auth/profile',
     LOGOUT: '/auth/logout',
     ONLINE_WORKERS: '/users/online-workers',

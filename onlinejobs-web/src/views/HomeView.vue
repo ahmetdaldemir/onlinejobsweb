@@ -181,32 +181,20 @@
           <button @click="goToRoot" class="breadcrumb-item">Ana Kategoriler</button>
           <span v-for="(category, index) in categoryPath" :key="category.id" class="breadcrumb-separator">/</span>
           <button 
-            v-for="(category, index) in categoryPath" 
-            :key="category.id"
-            @click="goToCategory(category, index)"
-            class="breadcrumb-item"
-            :class="{ 'active': index === categoryPath.length - 1 }"
-          >
+            v-for="(category, index) in categoryPath"   :key="category.id"  @click="goToCategory(category, index)" class="breadcrumb-item" :class="{ 'active': index === categoryPath.length - 1 }">
             {{ category.name }}
           </button>
         </div>
         
         <!-- Categories Grid -->
-        <div class="categories-grid">
-          <div 
-            v-for="category in categories" 
-            :key="category.id"
-            @click="selectCategory(category)"
-            class="category-card"
-          >
-                    <div class="category-card-content">
+        <div class="categories-grid" v-if="useAuthStore().userType === 'employer'">
+          <div   v-for="category in categories"  :key="category.id" @click="selectCategory(category)" class="category-card">
+          <div class="category-card-content">
             <div class="category-icon">{{ category.icon || '📁' }}</div>
             <h3 class="category-title">{{ category.name }}</h3>
             <div class="category-arrow">→</div>
           </div>
-          
           <p class="category-description">{{ category.description || 'Kategori açıklaması' }}</p>
-            
           </div>
         </div>
         
@@ -604,6 +592,11 @@ onUnmounted(() => {
 
 // Categories functions
 const loadCategories = async (parentId = null) => {
+
+  if(useAuthStore().userType === 'worker'){
+    return
+  }
+
   loading.value = true
   error.value = ''
   try {
@@ -618,7 +611,11 @@ const loadCategories = async (parentId = null) => {
 }
 
 const selectCategory = async (category) => {
-  // Add to path
+
+  if(category.parentId === null){
+    loadCategories(category.id)
+  }else{
+     // Add to path
   categoryPath.value.push(category)
   currentParentCategory.value = category
   
@@ -640,6 +637,8 @@ const selectCategory = async (category) => {
       }
     })
   }
+  }
+ 
 }
 
 const fetchOnlineWorkers = async (categoryId) => {
@@ -814,13 +813,17 @@ const goToRoot = () => {
 }
 
 const goToCategory = (category, index) => {
-  // Remove everything after this index
-  categoryPath.value = categoryPath.value.slice(0, index + 1)
+
+  if(useAuthStore().userType === 'worker'){
+   // Remove everything after this index
+   categoryPath.value = categoryPath.value.slice(0, index + 1)
   currentParentCategory.value = category
   onlineWorkers.value = []
   
   // Load categories for this level
   loadCategories(category.id)
+  }
+
 }
 
 // Load categories on mount

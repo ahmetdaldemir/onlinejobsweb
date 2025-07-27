@@ -65,8 +65,9 @@ export const categoryService = {
   },
   
   getCategoriesByParent: async (parentId: string | null = null) => {
-    const params = parentId ? { parent_id: parentId } : {}
-    const response = await api.get(API_CONFIG.ENDPOINTS.CATEGORIES, { params })
+    const params = parentId === null ? 
+    { url: API_CONFIG.ENDPOINTS.CATEGORIES } : { url: API_CONFIG.ENDPOINTS.CATEGORIES_BY_PARENT+'/'+parentId }
+    const response = await api.get(params.url)
     return response.data
   }
 }
