@@ -112,57 +112,36 @@
             Find the job that fit your life
           </h2>
           
+          <!-- Animated Text -->
+          <div class="animated-text-container">
+            <span class="animated-text" :class="{ 'fade-in': showAnimatedText, 'fade-out': !showAnimatedText }">
+              ihtiyacını ara ustanı bul
+            </span>
+          </div>
+          
           <!-- Search Bar -->
           <div class="search-container">
             <div class="search-bar">
               <input 
                 type="text" 
-                placeholder="Job Title or Keywords" 
-                class="search-input"
-              />
-              <input 
-                type="text" 
-                placeholder="Location" 
+                placeholder="Hizmet Ara" 
                 class="search-input"
               />
               <button class="search-button">
-                FIND JOBS
+                ARA
               </button>
             </div>
           </div>
 
           <!-- Featured Employers -->
-          <div class="featured-employers">
-            <h3 class="featured-title">Featured Employers</h3>
-            <div class="employers-grid">
-              <div class="employer-item">
-                <div class="employer-logo">CG</div>
-                <div class="employer-info">
-                  <h4>CoderGold ALT</h4>
-                  <p>1 Open Job</p>
-                </div>
-              </div>
-              <div class="employer-item">
-                <div class="employer-logo">AB</div>
-                <div class="employer-info">
-                  <h4>AB Solutions</h4>
-                  <p>3 Open Jobs</p>
-                </div>
-              </div>
-              <div class="employer-item">
-                <div class="employer-logo">DG</div>
-                <div class="employer-info">
-                  <h4>DG Company</h4>
-                  <p>2 Open Jobs</p>
-                </div>
-              </div>
-            </div>
-          </div>
+   
         </div>
         
         <div class="hero-image">
           <div class="image-placeholder">
-            <div class="person-icon">👨‍💼</div>
+            <div class="person-icon">
+              <video src="../../public/video/large.mp4" alt="person" class="w-full h-full object-cover"></video>
+            </div>
           </div>
         </div>
       </div>
@@ -522,6 +501,9 @@ const isMessageListOpen = ref(false)
 const unreadMessageCount = ref(0)
 const messageListRef = ref()
 
+// Animated text state
+const showAnimatedText = ref(true)
+
 // Modal functions
 const openLoginModal = () => {
   showLoginModal.value = true
@@ -829,6 +811,17 @@ const goToCategory = (category, index) => {
 // Load categories on mount
 onMounted(() => {
   loadCategories()
+  
+  // Start animated text cycle
+  const animateText = () => {
+    showAnimatedText.value = false
+    setTimeout(() => {
+      showAnimatedText.value = true
+    }, 1000)
+  }
+  
+  // Run animation every 4 seconds
+  setInterval(animateText, 4000)
   
   // Listen for open-chat events from notifications
   window.addEventListener('open-chat', (event: CustomEvent) => {
@@ -2080,5 +2073,32 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 1rem;
   z-index: 9999; /* Higher than message list */
+}
+
+/* Animated Text Styles */
+.animated-text-container {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.animated-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #10b981;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 0.5rem;
+  border: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.animated-text.fade-in {
+  opacity: 1;
+}
+
+.animated-text.fade-out {
+  opacity: 0;
 }
 </style> 

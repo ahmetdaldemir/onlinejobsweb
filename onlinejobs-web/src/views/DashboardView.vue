@@ -38,52 +38,22 @@
             <div class="search-bar">
               <input 
                 type="text" 
-                placeholder="Job Title or Keywords" 
-                class="search-input"
-              />
-              <input 
-                type="text" 
-                placeholder="Location" 
+                placeholder="Hizmet Ara" 
                 class="search-input"
               />
               <button class="search-button">
-                FIND JOBS
+               ARA
               </button>
             </div>
           </div>
 
-          <!-- Featured Employers -->
-          <div class="featured-employers">
-            <h3 class="featured-title">Featured Employers</h3>
-            <div class="employers-grid">
-              <div class="employer-item">
-                <div class="employer-logo">CG</div>
-                <div class="employer-info">
-                  <h4>CoderGold ALT</h4>
-                  <p>1 Open Job</p>
-                </div>
-              </div>
-              <div class="employer-item">
-                <div class="employer-logo">AB</div>
-                <div class="employer-info">
-                  <h4>AB Solutions</h4>
-                  <p>3 Open Jobs</p>
-                </div>
-              </div>
-              <div class="employer-item">
-                <div class="employer-logo">DG</div>
-                <div class="employer-info">
-                  <h4>DG Company</h4>
-                  <p>2 Open Jobs</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
         
         <div class="hero-image">
           <div class="image-placeholder">
-            <div class="person-icon">👨‍💼</div>
+            <div class="person-icon">
+              <video src="../../public/video/large.mp4" alt="person" class="w-full h-full object-cover"></video>
+            </div>
           </div>
         </div>
       </div>
