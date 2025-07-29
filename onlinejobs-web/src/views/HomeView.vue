@@ -114,8 +114,8 @@
           
           <!-- Animated Text -->
           <div class="animated-text-container">
-            <span class="animated-text" :class="{ 'fade-in': showAnimatedText, 'fade-out': !showAnimatedText }">
-              ihtiyacını ara ustanı bul
+            <span class="animated-text">
+              {{ displayText }}<span class="cursor" :class="{ 'blink': isTyping }">|</span>
             </span>
           </div>
           
@@ -502,7 +502,9 @@ const unreadMessageCount = ref(0)
 const messageListRef = ref()
 
 // Animated text state
-const showAnimatedText = ref(true)
+const displayText = ref('')
+const isTyping = ref(false)
+const fullText = 'ihtiyacını ara ustanı bul'
 
 // Modal functions
 const openLoginModal = () => {
@@ -812,16 +814,37 @@ const goToCategory = (category, index) => {
 onMounted(() => {
   loadCategories()
   
-  // Start animated text cycle
-  const animateText = () => {
-    showAnimatedText.value = false
-    setTimeout(() => {
-      showAnimatedText.value = true
-    }, 1000)
+  // Start typing animation
+  const typeText = async () => {
+    isTyping.value = true
+    displayText.value = ''
+    
+    // Type each character
+    for (let i = 0; i < fullText.length; i++) {
+      displayText.value += fullText[i]
+      await new Promise(resolve => setTimeout(resolve, 100)) // 100ms delay between characters
+    }
+    
+    // Wait a bit, then clear text
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Clear text character by character
+    for (let i = displayText.value.length; i > 0; i--) {
+      displayText.value = displayText.value.slice(0, -1)
+      await new Promise(resolve => setTimeout(resolve, 50)) // 50ms delay for clearing
+    }
+    
+    isTyping.value = false
+    
+    // Wait before starting next cycle
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Start next cycle
+    typeText()
   }
   
-  // Run animation every 4 seconds
-  setInterval(animateText, 4000)
+  // Start the typing animation
+  typeText()
   
   // Listen for open-chat events from notifications
   window.addEventListener('open-chat', (event: CustomEvent) => {
@@ -2085,20 +2108,34 @@ onUnmounted(() => {
   font-size: 1.25rem;
   font-weight: 600;
   color: #10b981;
-  opacity: 0;
-  transition: opacity 1s ease-in-out;
   display: inline-block;
   padding: 0.5rem 1rem;
   background: rgba(16, 185, 129, 0.1);
   border-radius: 0.5rem;
   border: 2px solid rgba(16, 185, 129, 0.2);
+  min-height: 2.5rem;
+  line-height: 1.5;
 }
 
-.animated-text.fade-in {
-  opacity: 1;
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.5em;
+  background-color: #10b981;
+  margin-left: 2px;
+  animation: blink 1s infinite;
 }
 
-.animated-text.fade-out {
-  opacity: 0;
+.cursor.blink {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
 }
 </style> 
